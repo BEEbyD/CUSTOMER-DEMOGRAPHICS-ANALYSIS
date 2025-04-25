@@ -1,0 +1,235 @@
+---
+title: "BM2515/2507 Project"
+output:
+  html_document:
+    df_print: paged
+  pdf_document: default
+date: 'Due Date: 11:59pm, 26 Apr, 2025'
+---
+
+
+```{r}
+library(tidyverse)
+library(tidyr)
+```
+
+```{r}
+customer_demographics <- read.csv("Customer_demographics.csv")
+sales_data <- read.csv("Sales.csv")
+
+```
+```{r}
+#Qn 1 Based on the customer demographics data, describe the customers.
+
+summary(customer_demographics)
+
+customer_demographics$Education <- factor(customer_demographics$Education, 
+                                          levels = c(1, 2, 3), labels = c("High School", "Undergraduate", "Postgraduate"))
+
+# Average income by education level
+aggregate(customer_demographics$Income,
+          by = list(customer_demographics$Education),
+          FUN = mean)
+
+# Average age by education level
+aggregate(customer_demographics$Age,
+          by = list(customer_demographics$Education),
+          FUN = mean)
+highschool_number <- length(customer_demographics$Education[customer_demographics$Education == "High School"])
+highschool_number
+
+undergraduate_number <- length(customer_demographics$Education[customer_demographics$Education == "Undergraduate"])
+undergraduate_number
+
+postgraduate_number <- length(customer_demographics$Education[customer_demographics$Education == "Postgraduate"])
+postgraduate_number
+
+# Female
+no_highsch_female <- nrow(customer_demographics[customer_demographics$Education == "High School" & customer_demographics$Female == 1, ])
+no_undergrad_female <- nrow(customer_demographics[customer_demographics$Education == "Undergraduate" & customer_demographics$Female == 1, ])
+no_postgrad_female <- nrow(customer_demographics[customer_demographics$Education == "Postgraduate" & customer_demographics$Female == 1, ])
+
+# Male
+no_highsch_male <- nrow(customer_demographics[customer_demographics$Education == "High School" & customer_demographics$Female == 0, ])
+no_undergrad_male <- nrow(customer_demographics[customer_demographics$Education == "Undergraduate" & customer_demographics$Female == 0, ])
+no_postgrad_male <- nrow(customer_demographics[customer_demographics$Education == "Postgraduate" & customer_demographics$Female == 0, ])
+
+# Output each count
+no_highsch_female
+no_undergrad_female
+no_postgrad_female
+
+no_highsch_male
+no_undergrad_male
+no_postgrad_male
+```
+
+```{r}
+#Qn 2.1 Do female customers purchase more on average than male customers?
+sales_data = read.csv("Sales.csv")
+
+# Refactor Education
+sales_data$Education <- factor(
+  sales_data$Education,
+  levels = c(1, 2, 3),
+  labels = c("High School", "Undergraduate", "Postgraduate")
+)
+
+head(sales_data)
+
+```
+
+```{r}
+average_male_sales <- mean(sales_data$Sales[sales_data$Female == 0], na.rm = TRUE)
+average_female_sales <- mean(sales_data$Sales[sales_data$Female == 1], na.rm = TRUE)
+print(data.frame(Female = c(0,1), Avg = c(average_female_sales,average_male_sales)))
+
+```
+
+
+```{r}
+# 2.2 Do customers with different education levels show different purchase patterns?
+avg_sales_edu <- aggregate(
+  Sales ~ Education,
+  data = sales_data,
+  FUN  = mean
+)
+print("Average sales by education level:")
+print(avg_sales_edu)
+```
+
+```{r}
+#Qn 2.3 Is the promotion effective? If so, how does it affect female and male customers differently?
+sales_data$Education <- as.factor(sales_data$Education)
+reg <- lm(Sales ~ Price + Promotion + Age + Education + Income + Female, data = sales_data)
+summary(reg)
+
+reg = lm(Sales ~ Price + Promotion + Age + Education + Income + Female, data = sales_data)
+summary(reg)
+
+# Male Data
+male_data = subset(sales_data, Female == 0)
+model_male = lm(Sales ~ Price + Promotion + Age + Education + Income, data = male_data)
+summary(model_male)
+
+# Female Data
+female_data = subset(sales_data, Female == 1)
+model_female = lm(Sales ~ Price + Promotion + Age + Education + Income, data = female_data)
+summary(model_female)
+
+```
+
+```{r}
+
+#Qn 2.4 What factors affect a customer's return probability? ( Do not consider any interactions terms or use Sales as an independent variable in this regression )
+reg=glm(Return ~ Price + Promotion + Age + Education + Income + Female, family = binomial, data = sales_data)
+summary(reg)
+
+```
+
+
+
+
+```{r}
+
+#Qn 3.1 For a customer with income=5300, age=30, female=1,education=2, what is the expected profit for the following two scenarios: 
+#Qn 3.1 Part 1) price = 5, promotion = 1 
+reg=lm(Sales~Price+Promotion+Age+Education+Income+Female,data=sales_data)
+discount=0.3
+unit_cost=2.5
+customer_1 = data.frame(Income = 5300, Age = 30, Female = 1, Education = factor("Undergraduate", levels = c("High School", "Undergraduate", "Postgraduate")), Price = 5, Promotion = 1)
+predicted_sales_1 = predict(reg, customer_1)
+profit_1 = predicted_sales_1 * ((customer_1$Price - (customer_1$Promotion * discount)) - unit_cost)
+print(profit_1)
+
+```
+
+```{r}
+#Qn 3.1 Part 2) price = 4.8
+customer_2 = data.frame(Income = 5300, Age = 30, Female = 1, Education = factor("Undergraduate", levels = c("High School", "Undergraduate", "Postgraduate")), Price = 4.8, Promotion = 0)
+predicted_sales_2 = predict(reg, customer_2)
+profit_2 = predicted_sales_2 * ((customer_2$Price - (customer_2$Promotion * discount)) - unit_cost)
+print(profit_2)
+
+```
+
+```{r}
+#Qn 3.2 Part 1) price = 5, promotion = 1 
+customer_3 = data.frame(Income = 5300, Age = 30, Female = 0, Education = factor("Undergraduate", levels = c("High School", "Undergraduate", "Postgraduate")), Price = 5, Promotion = 1)
+predicted_sales_3 = predict(reg, customer_3)
+profit_3 = predicted_sales_3 * ((customer_3$Price - (customer_3$Promotion * discount)) - unit_cost)
+print(profit_3)
+
+```
+
+```{r}
+#Qn 3.2 Part 2) price = 4.8, promotion = 0
+customer_4 = data.frame(Income = 5300, Age = 30, Female = 0, Education = factor("Undergraduate", levels = c("High School", "Undergraduate", "Postgraduate")), Price = 4.8, Promotion = 0)
+predicted_sales_4 = predict(reg, customer_4)
+profit_4 = predicted_sales_4 * ((customer_4$Price - (customer_4$Promotion * discount)) - unit_cost)
+print(profit_4)
+```
+
+```{r}
+#Qn 4
+customer_data = read.csv("Customer_demographics.csv")
+sales_data = read.csv("Sales.csv")
+
+sales_data$Education = factor(sales_data$Education, levels = c(1, 2, 3), labels = c("High School", "Undergraduate", "Postgraduate"))
+return_logit = glm(Return~Price+Promotion+Age+Education+Income+Female, data = sales_data, family = 'binomial')
+sales_reg = lm(log(Sales)~log(Price)+ Promotion + Age + log(Income)+ Female + Education, data = sales_data)
+summary(return_logit)
+summary(sales_reg)
+```
+
+
+```{r}
+#Qn 4.1 Part 1) income=5300, age=30,female=1,education=2
+customer1 = data.frame(Price = 5, Promotion = 1, Income = 5300, Age=30, Female=1, Education = factor("Undergraduate", levels = c("High School", "Undergraduate", "Postgraduate")))
+sales1 = exp(predict(sales_reg,customer1)) #10.1
+profit1 = sales1*(5-2.5-0.3) #22.22193
+profit1
+prob_return1 = predict(return_logit, customer1, type = 'response') #0.3952867 
+expected_profit1= profit1*(1 - prob_return1)+(sales1*(-1))*prob_return1 #9.445153 
+expected_profit1
+```
+
+```{r}
+#Qn 4.1 Part 2) income=5300, age=30,female=1,education=2
+customer2 = data.frame(Price = 4.8, Promotion = 0, Income = 5300, Age=30, Female=1, Education = factor("Undergraduate", levels = c("High School", "Undergraduate", "Postgraduate")))
+sales2 = exp(predict(sales_reg, customer2)) #9.241626 
+profit2 = sales2 * (4.8-2.5) #21.25574 
+profit2
+prob_return2 = predict(return_logit, customer2, type = 'response') #0.210729 
+prob_return2
+expected_profit2= profit2*(1 - prob_return2)+(sales2*(-1))*prob_return2 #14.82906 
+
+
+expected_profit2 
+```
+
+```{r}
+#Qn 4.2 Part 1) INCOME = 8500, AGE= 30, FEMALE = 1, EDUCATION=3
+customer3 = data.frame(Price = 5, Promotion = 1, Income = 8500, Age=30, Female=1, Education = factor("Postgraduate", levels = c("High School", "Undergraduate", "Postgraduate")))
+sales3 = exp(predict(sales_reg, customer3))
+sales3 #10.64717 
+profit3 = sales3 * (5-2.5-0.3) #23.42378 
+profit3
+prob_return3 = predict(return_logit, customer3, type = 'response') #0.06577799 
+prob_return3
+expected_profit3= profit3*(1 - prob_return3)+(sales3*(-1))*prob_return3 #21.18266 
+expected_profit3
+```
+
+```{r}
+#Qn 4.2 Part 2) INCOME = 8500, AGE= 30, FEMALE = 1, EDUCATION=3
+customer4 = data.frame(Price = 4.8, Promotion = 0, Income = 8500, Age=30, Female=1, Education = factor("Postgraduate", levels = c("High School", "Undergraduate", "Postgraduate")))
+sales4 = exp(predict(sales_reg, customer4))
+sales4 #9.741449 
+profit4 = sales4 * (4.8-2.5) #22.40533 
+profit4
+prob_return4 = predict(return_logit, customer4, type = 'response') #0.02795455 
+prob_return4
+expected_profit4= profit4*(1 - prob_return4) + (sales4 *(-1))*prob_return4 #21.50668 
+expected_profit4 
+```
